@@ -130,6 +130,18 @@ Notes:
   - Report any issues to [azure-dev](https://github.com/Azure/azure-dev/issues) repo.
   - [FAQ and troubleshoot](https://learn.microsoft.com/azure/developer/azure-developer-cli/troubleshoot?tabs=Browser) for azd.
 
+## Production Readiness
+
+This repository has undergone a comprehensive production readiness assessment. Key documents:
+
+- **[Quick Reference](./READINESS_QUICK_REFERENCE.md)** - Start here for a quick overview
+- **[Full Assessment](./PRODUCTION_READINESS_ASSESSMENT.md)** - Detailed analysis of all aspects
+- **[API Documentation](./docs/API_DOCUMENTATION.md)** - Complete API reference
+- **[Deployment Runbook](./docs/DEPLOYMENT_RUNBOOK.md)** - Deployment procedures and troubleshooting
+- **[Security Policy](./SECURITY.md)** - Security guidelines and vulnerability reporting
+
+**Overall Readiness: 7/10** - Approaching production ready. See the assessment for priority actions.
+
 ## Contributing
 
 For more information on contributing to this repo, read [the contribution documentation](./CONTRIBUTING.md) and [the Code of Conduct](CODE-OF-CONDUCT.md).
