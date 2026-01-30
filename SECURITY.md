@@ -92,7 +92,7 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 **Why**: Prevents host header injection attacks
 
-### HTTPS Configuration
+### HSTS Configuration
 
 ✅ HTTPS is enforced by default via `app.UseHttpsRedirection()`
 
@@ -107,12 +107,16 @@ if (!app.Environment.IsDevelopment())
 
 **Consider increasing HSTS max-age** for mature deployments:
 ```csharp
-app.UseHsts(options =>
+// In Program.cs, before app.UseHsts()
+builder.Services.AddHsts(options =>
 {
     options.MaxAge = TimeSpan.FromDays(365);
     options.IncludeSubDomains = true;
     options.Preload = true;
 });
+
+// Then use the middleware
+app.UseHsts();
 ```
 
 ### CORS Configuration
