@@ -130,6 +130,21 @@ Notes:
   - Report any issues to [azure-dev](https://github.com/Azure/azure-dev/issues) repo.
   - [FAQ and troubleshoot](https://learn.microsoft.com/azure/developer/azure-developer-cli/troubleshoot?tabs=Browser) for azd.
 
+## Production Deployment
+
+For production deployments, refer to these comprehensive guides:
+
+- **[Production Deployment Guide](./PRODUCTION.md)** - Complete deployment instructions for production environments
+- **[Environment Variables Reference](./ENVIRONMENT_VARIABLES.md)** - All configuration variables and their usage
+- **[Security Best Practices](./SECURITY.md)** - Security guidelines and compliance checklist
+
+Key production readiness features:
+- ✅ Health check endpoints enabled (`/health`, `/alive`) for container orchestration
+- ✅ Production-specific configuration files with appropriate logging levels
+- ✅ Comprehensive secrets management documentation
+- ✅ Azure integration with Application Insights, Service Bus, and Key Vault
+- ✅ OpenTelemetry observability (metrics, traces, logs)
+
 ## Contributing
 
 For more information on contributing to this repo, read [the contribution documentation](./CONTRIBUTING.md) and [the Code of Conduct](CODE-OF-CONDUCT.md).
