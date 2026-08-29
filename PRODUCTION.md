@@ -66,94 +66,372 @@ Production-specific settings are stored in `appsettings.Production.json` files. 
 ### Recommended Approaches
 
 #### Option 1: Azure Key Vault (Recommended for Azure)
+
+Azure Key Vault provides secure, centralized secret storage with access control and audit logging.
+
+**Step 1:** Store your sensitive configuration in Azure Key Vault
 ```bash
-# Store secrets in Azure Key Vault
+# Store the Azure AD client secret
+# Replace <vault-name> with your Key Vault name (e.g., "eshop-keyvault-prod")
+# Replace <secret> with your actual secret value
 az keyvault secret set --vault-name <vault-name> --name "AzureAd--ClientSecret" --value "<secret>"
+
+# Store the webhook authentication token
+# Replace <token> with a secure random GUID or token
 az keyvault secret set --vault-name <vault-name> --name "WebhookToken" --value "<token>"
 ```
 
-Configure your application to use Key Vault references in Azure App Service/Container Apps.
+**Step 2:** Configure your application to use Key Vault references
+
+For Azure App Service or Container Apps, reference Key Vault secrets in your application settings:
+- Go to Azure Portal → Your App Service/Container App → Configuration
+- Add application setting: `AzureAd__ClientSecret = @Microsoft.KeyVault(SecretUri=https://<vault-name>.vault.azure.net/secrets/AzureAd--ClientSecret/)`
+- The app will automatically retrieve secrets from Key Vault using its managed identity
 
 #### Option 2: Environment Variables
+
 Set environment variables through your deployment platform:
-- Azure Portal: Configuration → Application Settings
-- Kubernetes: ConfigMaps and Secrets
-- Docker Compose: Environment files (not checked into source control)
+- **Azure Portal**: Navigate to Configuration → Application Settings
+  1. Click "New application setting"
+  2. Add name/value pairs for your secrets
+  3. Mark as "Deployment slot setting" if needed
+  4. Click "Save" to apply changes
+  
+- **Kubernetes**: Use ConfigMaps (non-sensitive) and Secrets (sensitive data)
+  ```bash
+  # Create a Kubernetes secret
+  kubectl create secret generic eshop-secrets \
+    --from-literal=AzureAd__ClientSecret='<your-secret>' \
+    --from-literal=WebhookToken='<your-token>'
+  ```
+  
+- **Docker Compose**: Use environment files (never commit these to source control!)
+  ```bash
+  # Create a .env file (add to .gitignore!)
+  echo "AzureAd__ClientSecret=<your-secret>" > .env
+  echo "WebhookToken=<your-token>" >> .env
+  ```
 
 #### Option 3: User Secrets (Development Only)
+
+**⚠️ WARNING:** Only use this for local development. Never use for production!
+
 ```bash
+# Store secrets securely on your local machine (not in source control)
+# The secret is stored in your user profile directory
 dotnet user-secrets set "AzureAd:ClientSecret" "<secret>" --project src/eShop.AppHost
+
+# You can also use PowerShell to generate and store a random webhook token
+# Example:
+# $token = [System.Guid]::NewGuid().ToString()
+# dotnet user-secrets set "WebhookToken" $token --project src/eShop.AppHost
 ```
+
+These secrets are stored in:
+- **Windows**: `%APPDATA%\Microsoft\UserSecrets\<user-secrets-id>\secrets.json`
+- **Linux/macOS**: `~/.microsoft/usersecrets/<user-secrets-id>/secrets.json`
 
 ## Deployment Methods
 
 ### Method 1: Azure Developer CLI (Recommended)
 
-1. **Install Azure Developer CLI**
-   ```bash
-   # Windows
-   powershell -ex AllSigned -c "Invoke-RestMethod 'https://aka.ms/install-azd.ps1' | Invoke-Expression"
-   
-   # Linux/macOS
-   curl -fsSL https://aka.ms/install-azd.sh | bash
-   ```
+The Azure Developer CLI (azd) simplifies deploying .NET Aspire applications to Azure by automating infrastructure provisioning and deployment.
 
-2. **Login to Azure**
-   ```bash
-   azd auth login
-   ```
+#### 1. Install Azure Developer CLI
 
-3. **Initialize the project** (first time only)
-   ```bash
-   azd init
-   ```
-   - Select `Use code in the current directory`
-   - Confirm `.NET (Aspire)`
-   - Select services to expose (recommend exposing `webapp`)
-   - Provide an environment name
+**For Windows (PowerShell):**
+```powershell
+# Downloads and executes the azd installer script
+# The -ex AllSigned parameter allows running the digitally signed script
+# The script is downloaded from the official Microsoft URL and executed immediately
+powershell -ex AllSigned -c "Invoke-RestMethod 'https://aka.ms/install-azd.ps1' | Invoke-Expression"
+```
 
-4. **Deploy to Azure**
-   ```bash
-   azd up
-   ```
-   
-   This command will:
-   - Provision all required Azure resources
-   - Build container images
-   - Deploy the application
-   - Output the webapp URL
+**For Linux/macOS (Bash):**
+```bash
+# Downloads and executes the azd installer script using curl
+# The -fsSL flags make curl silent and follow redirects
+curl -fsSL https://aka.ms/install-azd.sh | bash
+```
 
-5. **Update existing deployment**
-   ```bash
-   azd deploy
-   ```
+**Verify installation:**
+```bash
+# Check that azd is installed and view its version
+azd version
+```
+
+#### 2. Login to Azure
+
+```bash
+# Opens a browser window for Azure authentication
+# You'll sign in with your Microsoft account that has access to your Azure subscription
+azd auth login
+```
+
+**What happens:**
+- Browser opens with Azure login page
+- You authenticate with your Azure credentials
+- azd stores authentication tokens locally for future use
+
+#### 3. Initialize the project (first time only)
+
+```bash
+# Detects your .NET Aspire project and configures Azure deployment settings
+# This creates azd configuration files in your project
+azd init
+```
+
+**During initialization, you'll be prompted for:**
+- **"Use code in the current directory"** - Select this option
+- **Confirm `.NET (Aspire)`** - azd auto-detects this, just confirm
+- **Services to expose** - Select which services should have public endpoints (recommend: `webapp`)
+- **Environment name** - Provide a name like "dev", "staging", or "prod"
+
+**What gets created:**
+- `.azure/` directory with environment-specific configuration
+- `azure.yaml` file defining your deployment configuration
+
+#### 4. Deploy to Azure
+
+```bash
+# Provisions Azure resources and deploys your application in one command
+# This is the "magic command" that does everything
+azd up
+```
+
+**This single command will:**
+1. **Provision Azure resources:**
+   - Azure Container Registry (ACR) for your Docker images
+   - Azure Container Apps for running your microservices
+   - Azure PostgreSQL for databases
+   - Azure Redis for caching
+   - Azure Service Bus for messaging
+   - Azure Application Insights for monitoring
+
+2. **Build and containerize:**
+   - Builds your .NET projects
+   - Creates Docker images for each service
+   - Pushes images to Azure Container Registry
+
+3. **Deploy:**
+   - Deploys container images to Azure Container Apps
+   - Configures networking and service discovery
+   - Sets up environment variables and secrets
+
+4. **Output:**
+   - Displays the URL of your deployed webapp
+   - Shows resource group and subscription information
+
+**Expected output example:**
+```
+SUCCESS: Your application was provisioned and deployed to Azure in X minutes.
+You can view the resources created under the resource group rg-eshop-dev in the Azure Portal.
+
+Endpoint: https://webapp-abc123.azurecontainerapps.io
+```
+
+#### 5. Update existing deployment
+
+When you've made code changes and want to redeploy:
+
+```bash
+# Rebuilds images and redeploys to existing Azure resources
+# Much faster than 'azd up' because infrastructure already exists
+azd deploy
+```
+
+**What this does:**
+- Rebuilds only changed services
+- Pushes updated images to ACR
+- Updates Container Apps with new images
+- Maintains existing infrastructure and configuration
+
+**Useful azd commands:**
+```bash
+# View deployment status
+azd show
+
+# View application logs
+azd monitor --logs
+
+# Remove all Azure resources (cleanup)
+azd down
+
+# View environment configuration
+azd env list
+```
 
 ### Method 2: Manual Azure Deployment
 
-1. **Create Azure Resources**
-   - Azure Container Apps or Azure Kubernetes Service (AKS)
-   - Azure Container Registry
-   - Azure Database for PostgreSQL
-   - Azure Redis Cache
-   - Azure Service Bus
-   - Azure Application Insights
+For more control over the deployment process, you can manually provision Azure resources and deploy your application.
 
-2. **Build and Push Container Images**
-   ```bash
-   # Build images
-   dotnet publish src/WebApp/WebApp.csproj -c Release
-   dotnet publish src/Catalog.API/Catalog.API.csproj -c Release
-   # ... repeat for all services
-   
-   # Tag and push to Azure Container Registry
-   docker tag eshop/webapp:latest <your-acr>.azurecr.io/webapp:latest
-   docker push <your-acr>.azurecr.io/webapp:latest
-   ```
+#### 1. Create Azure Resources
 
-3. **Configure Container Apps**
-   - Set environment variables for each service
-   - Configure health check endpoints: `/health` and `/alive`
-   - Set up ingress rules for public-facing services
+You'll need to create the following Azure resources (either via Azure Portal or Azure CLI):
+
+**Required Resources:**
+- **Azure Container Apps or Azure Kubernetes Service (AKS)** - For hosting microservices
+- **Azure Container Registry (ACR)** - For storing Docker images
+- **Azure Database for PostgreSQL** - For persistent data storage
+- **Azure Redis Cache** - For session state and caching
+- **Azure Service Bus** - For asynchronous messaging between services
+- **Azure Application Insights** - For monitoring and telemetry
+
+**Example using Azure CLI:**
+```bash
+# Set variables for your deployment
+RESOURCE_GROUP="rg-eshop-prod"
+LOCATION="eastus"
+ACR_NAME="eshopacr"
+
+# Create resource group
+az group create --name $RESOURCE_GROUP --location $LOCATION
+
+# Create Azure Container Registry
+az acr create --resource-group $RESOURCE_GROUP --name $ACR_NAME --sku Standard
+
+# Create PostgreSQL server
+az postgres flexible-server create \
+  --name eshop-db-prod \
+  --resource-group $RESOURCE_GROUP \
+  --location $LOCATION \
+  --admin-user adminuser \
+  --admin-password <secure-password> \
+  --sku-name Standard_B2s \
+  --tier Burstable
+```
+
+#### 2. Build and Push Container Images
+
+**Step 1:** Build your .NET projects for production
+```bash
+# Build the WebApp service
+# The -c Release flag builds an optimized production version
+dotnet publish src/WebApp/WebApp.csproj -c Release -o ./publish/webapp
+
+# Build the Catalog API service
+dotnet publish src/Catalog.API/Catalog.API.csproj -c Release -o ./publish/catalog-api
+
+# Build the Basket API service
+dotnet publish src/Basket.API/Basket.API.csproj -c Release -o ./publish/basket-api
+
+# Repeat for all other services:
+# - Ordering.API
+# - Mobile.Bff.Shopping
+# - Webhooks.API
+# - OrderProcessor
+# - PaymentProcessor
+```
+
+**Step 2:** Build Docker images for each service
+```bash
+# Build Docker image for WebApp
+# Uses the Dockerfile in the WebApp directory
+docker build -f src/WebApp/Dockerfile -t eshop/webapp:latest .
+
+# Build Docker image for Catalog API
+docker build -f src/Catalog.API/Dockerfile -t eshop/catalog-api:latest .
+
+# Build Docker image for Basket API
+docker build -f src/Basket.API/Dockerfile -t eshop/basket-api:latest .
+
+# Repeat for all other services
+```
+
+**Step 3:** Tag images for your Azure Container Registry
+```bash
+# Replace <your-acr> with your actual ACR name (e.g., eshopacr)
+# Login to ACR first
+az acr login --name <your-acr>
+
+# Tag WebApp image
+# This associates the local image with your ACR repository
+docker tag eshop/webapp:latest <your-acr>.azurecr.io/webapp:latest
+docker tag eshop/webapp:latest <your-acr>.azurecr.io/webapp:v1.0.0
+
+# Tag Catalog API image
+docker tag eshop/catalog-api:latest <your-acr>.azurecr.io/catalog-api:latest
+docker tag eshop/catalog-api:latest <your-acr>.azurecr.io/catalog-api:v1.0.0
+
+# Repeat for all services
+```
+
+**Step 4:** Push images to Azure Container Registry
+```bash
+# Push WebApp images to ACR
+# Both the 'latest' tag and version tag
+docker push <your-acr>.azurecr.io/webapp:latest
+docker push <your-acr>.azurecr.io/webapp:v1.0.0
+
+# Push Catalog API images to ACR
+docker push <your-acr>.azurecr.io/catalog-api:latest
+docker push <your-acr>.azurecr.io/catalog-api:v1.0.0
+
+# Repeat for all services
+```
+
+**PowerShell script to automate image build and push:**
+```powershell
+# Define all services to build
+$services = @("WebApp", "Catalog.API", "Basket.API", "Ordering.API", "Mobile.Bff.Shopping", "Webhooks.API")
+$acrName = "<your-acr>"
+$version = "v1.0.0"
+
+# Login to ACR
+az acr login --name $acrName
+
+# Build, tag, and push each service
+foreach ($service in $services) {
+    $serviceName = $service.ToLower() -replace '\.', '-'
+    
+    Write-Host "Processing $service..." -ForegroundColor Cyan
+    
+    # Build Docker image
+    docker build -f "src/$service/Dockerfile" -t "eshop/$serviceName:latest" .
+    
+    # Tag for ACR
+    docker tag "eshop/$serviceName:latest" "$acrName.azurecr.io/$serviceName:latest"
+    docker tag "eshop/$serviceName:latest" "$acrName.azurecr.io/$serviceName:$version"
+    
+    # Push to ACR
+    docker push "$acrName.azurecr.io/$serviceName:latest"
+    docker push "$acrName.azurecr.io/$serviceName:$version"
+    
+    Write-Host "✓ Completed $service" -ForegroundColor Green
+}
+```
+
+#### 3. Configure Container Apps
+
+**Set environment variables for each service:**
+- Connection strings for PostgreSQL, Redis, and Service Bus
+- Application Insights instrumentation key
+- ASPNETCORE_ENVIRONMENT=Production
+
+**Configure health check endpoints:**
+- Primary health check: `/health` - Returns overall service health
+- Liveness probe: `/alive` - Confirms the service is running
+
+**Set up ingress rules:**
+- Configure which services should be publicly accessible
+- WebApp typically needs external ingress
+- Internal services (APIs, processors) use internal ingress only
+
+**Example Azure CLI command to create a Container App:**
+```bash
+az containerapp create \
+  --name webapp \
+  --resource-group $RESOURCE_GROUP \
+  --environment <container-apps-environment-name> \
+  --image $ACR_NAME.azurecr.io/webapp:latest \
+  --target-port 8080 \
+  --ingress external \
+  --registry-server $ACR_NAME.azurecr.io \
+  --env-vars \
+    "ASPNETCORE_ENVIRONMENT=Production" \
+    "ConnectionStrings__CatalogDB=<postgres-connection-string>" \
+    "ApplicationInsights__ConnectionString=<app-insights-connection-string>"
+```
 
 ### Method 3: Docker Compose (Testing/Staging)
 
