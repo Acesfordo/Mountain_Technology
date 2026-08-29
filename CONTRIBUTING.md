@@ -36,3 +36,18 @@ When considering contributions, we're guided by several principles that align wi
 ## Code of Conduct
 
 To ensure a welcoming and positive environment for everyone, please adhere to our Code of Conduct. Respectful collaboration is key to a successful project.
+
+## Development Guidelines
+
+### PowerShell Scripts
+
+If you're contributing PowerShell scripts or updating existing ones, please follow our [PowerShell Best Practices Guide](./docs/POWERSHELL_GUIDE.md). Key highlights include:
+
+- Add comprehensive header comments with synopsis, description, parameters, and examples
+- Use proper error handling with try-catch blocks
+- Never hardcode secrets or sensitive information
+- Include inline comments explaining the "why" behind complex logic
+- Provide clear progress indication for long-running operations
+- Follow proper naming conventions (PascalCase for variables, Verb-Noun for functions)
+
+See the full guide for detailed examples and patterns.

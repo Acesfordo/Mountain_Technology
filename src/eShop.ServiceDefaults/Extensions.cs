@@ -124,19 +124,21 @@ public static partial class Extensions
         // Uncomment the following line to enable the Prometheus endpoint (requires the OpenTelemetry.Exporter.Prometheus.AspNetCore package)
         // app.MapPrometheusScrapingEndpoint();
 
-        // Adding health checks endpoints to applications in non-development environments has security implications.
-        // See https://aka.ms/dotnet/aspire/healthchecks for details before enabling these endpoints in non-development environments.
-        if (app.Environment.IsDevelopment())
-        {
-            // All health checks must pass for app to be considered ready to accept traffic after starting
-            app.MapHealthChecks("/health");
+        // Health check endpoints are enabled for all environments to support container orchestration
+        // (Kubernetes liveness/readiness probes, Azure Container Apps health checks, etc.)
+        // For additional security in production, consider:
+        // - Using network policies to restrict access to these endpoints
+        // - Implementing custom authentication if detailed health status is exposed
+        // - Configuring your load balancer/ingress to access these endpoints on a non-public interface
 
-            // Only health checks tagged with the "live" tag must pass for app to be considered alive
-            app.MapHealthChecks("/alive", new HealthCheckOptions
-            {
-                Predicate = r => r.Tags.Contains("live")
-            });
-        }
+        // All health checks must pass for app to be considered ready to accept traffic after starting
+        app.MapHealthChecks("/health");
+
+        // Only health checks tagged with the "live" tag must pass for app to be considered alive
+        app.MapHealthChecks("/alive", new HealthCheckOptions
+        {
+            Predicate = r => r.Tags.Contains("live")
+        });
 
         return app;
     }

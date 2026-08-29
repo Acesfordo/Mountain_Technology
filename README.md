@@ -22,13 +22,28 @@ A reference .NET application implementing an e-commerce website using a services
 
 Or
 
-- Run the following commands in a Powershell & Terminal running as `Administrator` to automatically configure your environment with the required tools to build and run this application. (Note: A restart is required and included in the script below.)
+- **Automated Setup using PowerShell:** Run the following commands in a PowerShell terminal running as `Administrator` to automatically configure your environment with the required tools to build and run this application.
 
-```powershell
-install-Module -Name Microsoft.WinGet.Configuration -AllowPrerelease -AcceptLicense -Force
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-get-WinGetConfiguration -file .\.configurations\vside.dsc.yaml | Invoke-WinGetConfiguration -AcceptConfigurationAgreements
-```
+  **Step 1:** Install the WinGet Configuration PowerShell module
+  ```powershell
+  # This installs the Microsoft WinGet Configuration module which allows automated environment setup
+  install-Module -Name Microsoft.WinGet.Configuration -AllowPrerelease -AcceptLicense -Force
+  ```
+
+  **Step 2:** Refresh your PATH environment variable to include newly installed tools
+  ```powershell
+  # Combines system-wide and user-specific PATH variables so new tools are immediately available
+  $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+  ```
+
+  **Step 3:** Apply the Visual Studio configuration
+  ```powershell
+  # Reads the configuration file and installs Visual Studio with all required components
+  # This will install Visual Studio 2022 with ASP.NET, .NET Aspire SDK, and other dependencies
+  get-WinGetConfiguration -file .\.configurations\vside.dsc.yaml | Invoke-WinGetConfiguration -AcceptConfigurationAgreements
+  ```
+
+  > **Note:** A system restart is required after running these commands to complete the installation.
 
 Or
 
@@ -37,22 +52,50 @@ Or
 #### Mac, Linux, & Windows without Visual Studio
 - Install the latest [.NET 8 SDK](https://dot.net/download?cid=eshop)
 - Install the [.NET Aspire workload](https://learn.microsoft.com/dotnet/aspire/fundamentals/setup-tooling?tabs=dotnet-cli%2Cunix#install-net-aspire) with the following commands:
-```powershell
-dotnet workload update
-dotnet workload install aspire
-dotnet restore eShop.Web.slnf
-```
+
+  **Step 1:** Update your .NET workloads to the latest versions
+  ```powershell
+  # Ensures you have the latest workload manifests and tools
+  dotnet workload update
+  ```
+
+  **Step 2:** Install the .NET Aspire workload
+  ```powershell
+  # Installs components needed for cloud-native app development with .NET Aspire
+  # Includes orchestration, service defaults, and developer dashboard
+  dotnet workload install aspire
+  ```
+
+  **Step 3:** Restore project dependencies
+  ```powershell
+  # Downloads all NuGet packages required by the eShop solution
+  dotnet restore eShop.Web.slnf
+  ```
 
 Or
 
-- Run the following commands in a Powershell & Terminal running as `Administrator` to automatically configuration your environment with the required tools to build and run this application. (Note: A restart is required after running the script below.)
+- **Automated Setup using PowerShell:** Run the following commands in a PowerShell terminal running as `Administrator` to automatically configure your environment with the required tools to build and run this application.
 
-##### Install Visual Studio Code and related extensions
-```powershell
-install-Module -Name Microsoft.WinGet.Configuration -AllowPrerelease -AcceptLicense  -Force
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-get-WinGetConfiguration -file .\.configurations\vscode.dsc.yaml | Invoke-WinGetConfiguration -AcceptConfigurationAgreements
-```
+  **Step 1:** Install the WinGet Configuration PowerShell module
+  ```powershell
+  # This installs the Microsoft WinGet Configuration module for automated environment setup
+  install-Module -Name Microsoft.WinGet.Configuration -AllowPrerelease -AcceptLicense -Force
+  ```
+
+  **Step 2:** Refresh your PATH environment variable
+  ```powershell
+  # Combines system-wide and user-specific PATH variables so new tools are immediately available
+  $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+  ```
+
+  **Step 3:** Apply the Visual Studio Code configuration
+  ```powershell
+  # Reads the configuration file and installs VS Code with all required extensions
+  # This will install Visual Studio Code, C# Dev Kit, and .NET Aspire extensions
+  get-WinGetConfiguration -file .\.configurations\vscode.dsc.yaml | Invoke-WinGetConfiguration -AcceptConfigurationAgreements
+  ```
+
+  > **Note:** A system restart may be required after running these commands to complete the installation.
 
 > Note: These commands may require `sudo`
 
@@ -72,13 +115,26 @@ get-WinGetConfiguration -file .\.configurations\vscode.dsc.yaml | Invoke-WinGetC
  - Hit Ctrl-F5 to launch Aspire
 
 * Or run the application from your terminal:
-```powershell
-dotnet run --project src/eShop.AppHost/eShop.AppHost.csproj
-```
-then look for lines like this in the console output in order to find the URL to open the Aspire dashboard:
-```sh
-Login to the dashboard at: http://localhost:19888/login?t=uniquelogincodeforyou
-```
+
+  **Step 1:** Navigate to the eShop.AppHost project and run it
+  ```powershell
+  # This starts the .NET Aspire orchestrator which launches all microservices
+  # The AppHost manages service discovery, configuration, and the developer dashboard
+  dotnet run --project src/eShop.AppHost/eShop.AppHost.csproj
+  ```
+
+  **Step 2:** Access the Aspire Dashboard
+  
+  Look for lines like this in the console output to find the dashboard URL:
+  ```sh
+  Login to the dashboard at: http://localhost:19888/login?t=uniquelogincodeforyou
+  ```
+  
+  Copy the complete URL (including the token) and paste it into your browser. The dashboard provides:
+  - Real-time service health monitoring
+  - Distributed tracing visualization
+  - Logs from all services
+  - Resource metrics and performance data
 
 > You may need to install ASP.NET Core HTTPS development certificates first, and then close all browser tabs. Learn more at https://aka.ms/aspnet/https-trust-dev-cert
 
@@ -129,6 +185,21 @@ Notes:
   - You can run `azd up` after saving changes to the sample to re-deploy and update the sample.
   - Report any issues to [azure-dev](https://github.com/Azure/azure-dev/issues) repo.
   - [FAQ and troubleshoot](https://learn.microsoft.com/azure/developer/azure-developer-cli/troubleshoot?tabs=Browser) for azd.
+
+## Production Deployment
+
+For production deployments, refer to these comprehensive guides:
+
+- **[Production Deployment Guide](./PRODUCTION.md)** - Complete deployment instructions for production environments
+- **[Environment Variables Reference](./ENVIRONMENT_VARIABLES.md)** - All configuration variables and their usage
+- **[Security Best Practices](./SECURITY.md)** - Security guidelines and compliance checklist
+
+Key production readiness features:
+- ✅ Health check endpoints enabled (`/health`, `/alive`) for container orchestration
+- ✅ Production-specific configuration files with appropriate logging levels
+- ✅ Comprehensive secrets management documentation
+- ✅ Azure integration with Application Insights, Service Bus, and Key Vault
+- ✅ OpenTelemetry observability (metrics, traces, logs)
 
 ## Contributing
 
